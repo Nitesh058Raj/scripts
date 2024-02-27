@@ -1,0 +1,71 @@
+From 3fea40a83562dfc738798ed42d6901de3c5da115 Mon Sep 17 00:00:00 2001
+Message-Id: <3fea40a83562dfc738798ed42d6901de3c5da115.1709043678.git.dpark@linux.microsoft.com>
+In-Reply-To: <c1cac21cfdb52c17b663a4daf266298f80cae6fb.1709043678.git.dpark@linux.microsoft.com>
+References: <c1cac21cfdb52c17b663a4daf266298f80cae6fb.1709043678.git.dpark@linux.microsoft.com>
+From: Dongsu Park <dpark@linux.microsoft.com>
+Date: Tue, 27 Feb 2024 15:17:17 +0100
+Subject: [PATCH 07/13] Revert "x86/boot: Define setup size in linker script"
+
+This reverts commit c731fbcfdbb6c244aba8b9369f97e287b0c6a976.
+---
+ arch/x86/boot/header.S      | 2 +-
+ arch/x86/boot/setup.ld      | 4 ----
+ arch/x86/boot/tools/build.c | 6 ++++++
+ 3 files changed, 7 insertions(+), 5 deletions(-)
+
+diff --git a/arch/x86/boot/header.S b/arch/x86/boot/header.S
+index 06bd72a3..72744ba4 100644
+--- a/arch/x86/boot/header.S
++++ b/arch/x86/boot/header.S
+@@ -231,7 +231,7 @@ sentinel:	.byte 0xff, 0xff        /* Used to detect broken loaders */
+ 
+ 	.globl	hdr
+ hdr:
+-		.byte setup_sects - 1
++setup_sects:	.byte 0			/* Filled in by build.c */
+ root_flags:	.word ROOT_RDONLY
+ syssize:	.long 0			/* Filled in by build.c */
+ ram_size:	.word 0			/* Obsolete */
+diff --git a/arch/x86/boot/setup.ld b/arch/x86/boot/setup.ld
+index 9bd5c1ad..b11c45b9 100644
+--- a/arch/x86/boot/setup.ld
++++ b/arch/x86/boot/setup.ld
+@@ -39,10 +39,6 @@ SECTIONS
+ 	.signature	: {
+ 		setup_sig = .;
+ 		LONG(0x5a5aaa55)
+-
+-		/* Reserve some extra space for the reloc and compat sections */
+-		setup_size = ALIGN(ABSOLUTE(.) + 64, 512);
+-		setup_sects = ABSOLUTE(setup_size / 512);
+ 	}
+ 
+ 
+diff --git a/arch/x86/boot/tools/build.c b/arch/x86/boot/tools/build.c
+index 745d64b6..06949754 100644
+--- a/arch/x86/boot/tools/build.c
++++ b/arch/x86/boot/tools/build.c
+@@ -48,7 +48,12 @@ typedef unsigned int   u32;
+ u8 buf[SETUP_SECT_MAX*512];
+ 
+ #define PECOFF_RELOC_RESERVE 0x20
++
++#ifdef CONFIG_EFI_MIXED
+ #define PECOFF_COMPAT_RESERVE 0x20
++#else
++#define PECOFF_COMPAT_RESERVE 0x0
++#endif
+ 
+ static unsigned long efi_pe_entry;
+ static unsigned long efi32_pe_entry;
+@@ -383,6 +388,7 @@ int main(int argc, char ** argv)
+ #endif
+ 
+ 	/* Patch the setup code with the appropriate size parameters */
++	buf[0x1f1] = setup_sectors-1;
+ 	put_unaligned_le32(sys_size, &buf[0x1f4]);
+ 
+ 	update_pecoff_text(setup_sectors * 512, i + (sys_size * 16));
+-- 
+2.39.2
+

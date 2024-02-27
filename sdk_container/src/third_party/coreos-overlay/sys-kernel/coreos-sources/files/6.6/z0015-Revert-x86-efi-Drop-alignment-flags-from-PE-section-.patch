@@ -1,0 +1,61 @@
+From f9fca8074eb0f3df3b86081805e0ac4bb259e9dd Mon Sep 17 00:00:00 2001
+Message-Id: <f9fca8074eb0f3df3b86081805e0ac4bb259e9dd.1709043678.git.dpark@linux.microsoft.com>
+In-Reply-To: <c1cac21cfdb52c17b663a4daf266298f80cae6fb.1709043678.git.dpark@linux.microsoft.com>
+References: <c1cac21cfdb52c17b663a4daf266298f80cae6fb.1709043678.git.dpark@linux.microsoft.com>
+From: Dongsu Park <dpark@linux.microsoft.com>
+Date: Tue, 27 Feb 2024 15:20:23 +0100
+Subject: [PATCH 13/13] Revert "x86/efi: Drop alignment flags from PE section
+ headers"
+
+This reverts commit e17a8bf1fb5d655e46a7f67eebe6ab7c1f4232d0.
+---
+ arch/x86/boot/header.S | 12 ++++++++----
+ 1 file changed, 8 insertions(+), 4 deletions(-)
+
+diff --git a/arch/x86/boot/header.S b/arch/x86/boot/header.S
+index 8c8148d7..b04ca8e2 100644
+--- a/arch/x86/boot/header.S
++++ b/arch/x86/boot/header.S
+@@ -209,7 +209,8 @@ SYSSEG		= 0x1000		/* historical load address >> 4 */
+ 	.word	0				# NumberOfLineNumbers
+ 	.long	IMAGE_SCN_CNT_CODE		| \
+ 		IMAGE_SCN_MEM_READ		| \
+-		IMAGE_SCN_MEM_EXECUTE		# Characteristics
++		IMAGE_SCN_MEM_EXECUTE		| \
++		IMAGE_SCN_ALIGN_16BYTES		# Characteristics
+ 
+ 	#
+ 	# The EFI application loader requires a relocation section
+@@ -229,7 +230,8 @@ SYSSEG		= 0x1000		/* historical load address >> 4 */
+ 	.word	0				# NumberOfLineNumbers
+ 	.long	IMAGE_SCN_CNT_INITIALIZED_DATA	| \
+ 		IMAGE_SCN_MEM_READ		| \
+-		IMAGE_SCN_MEM_DISCARDABLE	# Characteristics
++		IMAGE_SCN_MEM_DISCARDABLE	| \
++		IMAGE_SCN_ALIGN_1BYTES		# Characteristics
+ 
+ #ifdef CONFIG_EFI_MIXED
+ 	#
+@@ -247,7 +249,8 @@ SYSSEG		= 0x1000		/* historical load address >> 4 */
+ 	.word	0				# NumberOfLineNumbers
+ 	.long	IMAGE_SCN_CNT_INITIALIZED_DATA	| \
+ 		IMAGE_SCN_MEM_READ		| \
+-		IMAGE_SCN_MEM_DISCARDABLE	# Characteristics
++		IMAGE_SCN_MEM_DISCARDABLE	| \
++		IMAGE_SCN_ALIGN_1BYTES		# Characteristics
+ #endif
+ 
+ 	#
+@@ -268,7 +271,8 @@ SYSSEG		= 0x1000		/* historical load address >> 4 */
+ 	.word	0				# NumberOfLineNumbers
+ 	.long	IMAGE_SCN_CNT_CODE		| \
+ 		IMAGE_SCN_MEM_READ		| \
+-		IMAGE_SCN_MEM_EXECUTE		# Characteristics
++		IMAGE_SCN_MEM_EXECUTE		| \
++		IMAGE_SCN_ALIGN_16BYTES		# Characteristics
+ 
+ 	.set	section_count, (. - section_table) / 40
+ #endif /* CONFIG_EFI_STUB */
+-- 
+2.39.2
+

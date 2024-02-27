@@ -1,0 +1,174 @@
+From 91233e2a5e4233f581913f3bdee7d6405a5188f5 Mon Sep 17 00:00:00 2001
+Message-Id: <91233e2a5e4233f581913f3bdee7d6405a5188f5.1709043678.git.dpark@linux.microsoft.com>
+In-Reply-To: <c1cac21cfdb52c17b663a4daf266298f80cae6fb.1709043678.git.dpark@linux.microsoft.com>
+References: <c1cac21cfdb52c17b663a4daf266298f80cae6fb.1709043678.git.dpark@linux.microsoft.com>
+From: Dongsu Park <dpark@linux.microsoft.com>
+Date: Tue, 27 Feb 2024 15:17:02 +0100
+Subject: [PATCH 05/13] Revert "x86/boot: Construct PE/COFF .text section from
+ assembler"
+
+This reverts commit 0db81e8e20f60a0b357584d746a9ad8bc3f7c579.
+---
+ arch/x86/boot/header.S      | 22 +++++++++++------
+ arch/x86/boot/tools/build.c | 47 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 62 insertions(+), 7 deletions(-)
+
+diff --git a/arch/x86/boot/header.S b/arch/x86/boot/header.S
+index 2b07bc59..34e9b35b 100644
+--- a/arch/x86/boot/header.S
++++ b/arch/x86/boot/header.S
+@@ -75,12 +75,14 @@ SYSSEG		= 0x1000		/* historical load address >> 4 */
+ 	.byte	0x02				# MajorLinkerVersion
+ 	.byte	0x14				# MinorLinkerVersion
+ 
+-	.long	setup_size + ZO__end - 0x200	# SizeOfCode
++	# Filled in by build.c
++	.long	0				# SizeOfCode
+ 
+ 	.long	0				# SizeOfInitializedData
+ 	.long	0				# SizeOfUninitializedData
+ 
+-	.long	setup_size + ZO_efi_pe_entry	# AddressOfEntryPoint
++	# Filled in by build.c
++	.long	0x0000				# AddressOfEntryPoint
+ 
+ 	.long	0x0200				# BaseOfCode
+ #ifdef CONFIG_X86_32
+@@ -103,7 +105,10 @@ SYSSEG		= 0x1000		/* historical load address >> 4 */
+ 	.word	0				# MinorSubsystemVersion
+ 	.long	0				# Win32VersionValue
+ 
+-	.long	setup_size + ZO__end 		# SizeOfImage
++	#
++	# The size of the bzImage is written in tools/build.c
++	#
++	.long	0				# SizeOfImage
+ 
+ 	.long	0x200				# SizeOfHeaders
+ 	.long	0				# CheckSum
+@@ -194,15 +199,18 @@ SYSSEG		= 0x1000		/* historical load address >> 4 */
+ 		IMAGE_SCN_MEM_DISCARDABLE	# Characteristics
+ #endif
+ 
++	#
++	# The offset & size fields are filled in by build.c.
++	#
+ 	.ascii	".text"
+ 	.byte	0
+ 	.byte	0
+ 	.byte	0
+-	.long	ZO__end
+-	.long	setup_size
+-	.long	ZO__edata			# Size of initialized data
++	.long	0
++	.long	0x0				# startup_{32,64}
++	.long	0				# Size of initialized data
+ 						# on disk
+-	.long	setup_size
++	.long	0x0				# startup_{32,64}
+ 	.long	0				# PointerToRelocations
+ 	.long	0				# PointerToLineNumbers
+ 	.word	0				# NumberOfRelocations
+diff --git a/arch/x86/boot/tools/build.c b/arch/x86/boot/tools/build.c
+index 9712f27e..e792c6c5 100644
+--- a/arch/x86/boot/tools/build.c
++++ b/arch/x86/boot/tools/build.c
+@@ -50,8 +50,10 @@ u8 buf[SETUP_SECT_MAX*512];
+ #define PECOFF_RELOC_RESERVE 0x20
+ #define PECOFF_COMPAT_RESERVE 0x20
+ 
++static unsigned long efi_pe_entry;
+ static unsigned long efi32_pe_entry;
+ static unsigned long _edata;
++static unsigned long _end;
+ 
+ /*----------------------------------------------------------------------*/
+ 
+@@ -214,6 +216,32 @@ static void update_pecoff_setup_and_reloc(unsigned int size)
+ #endif
+ }
+ 
++static void update_pecoff_text(unsigned int text_start, unsigned int file_sz)
++{
++	unsigned int pe_header;
++	unsigned int text_sz = file_sz - text_start;
++	unsigned int bss_sz = _end - text_sz;
++
++	pe_header = get_unaligned_le32(&buf[0x3c]);
++
++	/*
++	 * Size of code: Subtract the size of the first sector (512 bytes)
++	 * which includes the header.
++	 */
++	put_unaligned_le32(file_sz - 512 + bss_sz, &buf[pe_header + 0x1c]);
++
++	/* Size of image */
++	put_unaligned_le32(file_sz + bss_sz, &buf[pe_header + 0x50]);
++
++	/*
++	 * Address of entry point for PE/COFF executable
++	 */
++	put_unaligned_le32(text_start + efi_pe_entry, &buf[pe_header + 0x28]);
++
++	update_pecoff_section_header_fields(".text", text_start, text_sz + bss_sz,
++					    text_sz, text_start);
++}
++
+ static int reserve_pecoff_reloc_section(int c)
+ {
+ 	/* Reserve 0x20 bytes for .reloc section */
+@@ -221,9 +249,22 @@ static int reserve_pecoff_reloc_section(int c)
+ 	return PECOFF_RELOC_RESERVE;
+ }
+ 
++static void efi_stub_defaults(void)
++{
++	/* Defaults for old kernel */
++#ifdef CONFIG_X86_32
++	efi_pe_entry = 0x10;
++#else
++	efi_pe_entry = 0x210;
++#endif
++}
++
+ #else
+ 
+ static inline void update_pecoff_setup_and_reloc(unsigned int size) {}
++static inline void update_pecoff_text(unsigned int text_start,
++				      unsigned int file_sz) {}
++static inline void efi_stub_defaults(void) {}
+ 
+ static inline int reserve_pecoff_reloc_section(int c)
+ {
+@@ -266,8 +307,10 @@ static void parse_zoffset(char *fname)
+ 	p = (char *)buf;
+ 
+ 	while (p && *p) {
++		PARSE_ZOFS(p, efi_pe_entry);
+ 		PARSE_ZOFS(p, efi32_pe_entry);
+ 		PARSE_ZOFS(p, _edata);
++		PARSE_ZOFS(p, _end);
+ 
+ 		p = strchr(p, '\n');
+ 		while (p && (*p == '\r' || *p == '\n'))
+@@ -285,6 +328,8 @@ int main(int argc, char ** argv)
+ 	void *kernel;
+ 	u32 crc = 0xffffffffUL;
+ 
++	efi_stub_defaults();
++
+ 	if (argc != 5)
+ 		usage();
+ 	parse_zoffset(argv[3]);
+@@ -331,6 +376,8 @@ int main(int argc, char ** argv)
+ 	kernel = mmap(NULL, sz, PROT_READ, MAP_SHARED, fd, 0);
+ 	if (kernel == MAP_FAILED)
+ 		die("Unable to mmap '%s': %m", argv[2]);
++	update_pecoff_text(setup_sectors * 512, i + _edata);
++
+ 
+ 	crc = partial_crc32(buf, i, crc);
+ 	if (fwrite(buf, 1, i, dest) != i)
+-- 
+2.39.2
+

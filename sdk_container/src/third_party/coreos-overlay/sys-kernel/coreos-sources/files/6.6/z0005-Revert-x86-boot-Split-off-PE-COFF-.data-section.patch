@@ -1,0 +1,76 @@
+From 0897ed22901a893db4608be6ab4d37d8d740b4ff Mon Sep 17 00:00:00 2001
+Message-Id: <0897ed22901a893db4608be6ab4d37d8d740b4ff.1709043678.git.dpark@linux.microsoft.com>
+In-Reply-To: <c1cac21cfdb52c17b663a4daf266298f80cae6fb.1709043678.git.dpark@linux.microsoft.com>
+References: <c1cac21cfdb52c17b663a4daf266298f80cae6fb.1709043678.git.dpark@linux.microsoft.com>
+From: Dongsu Park <dpark@linux.microsoft.com>
+Date: Tue, 27 Feb 2024 15:16:46 +0100
+Subject: [PATCH 03/13] Revert "x86/boot: Split off PE/COFF .data section"
+
+This reverts commit f7eedad780689ebd4ba93b9ef5e90048e7ff3c2e.
+---
+ arch/x86/boot/Makefile |  2 +-
+ arch/x86/boot/header.S | 19 ++++---------------
+ 2 files changed, 5 insertions(+), 16 deletions(-)
+
+diff --git a/arch/x86/boot/Makefile b/arch/x86/boot/Makefile
+index 3cece19b..cc04917b 100644
+--- a/arch/x86/boot/Makefile
++++ b/arch/x86/boot/Makefile
+@@ -89,7 +89,7 @@ $(obj)/vmlinux.bin: $(obj)/compressed/vmlinux FORCE
+ 
+ SETUP_OBJS = $(addprefix $(obj)/,$(setup-y))
+ 
+-sed-zoffset := -e 's/^\([0-9a-fA-F]*\) [a-zA-Z] \(startup_32\|efi.._stub_entry\|efi\(32\)\?_pe_entry\|input_data\|kernel_info\|_end\|_ehead\|_text\|_e\?data\|z_.*\)$$/\#define ZO_\2 0x\1/p'
++sed-zoffset := -e 's/^\([0-9a-fA-F]*\) [a-zA-Z] \(startup_32\|efi.._stub_entry\|efi\(32\)\?_pe_entry\|input_data\|kernel_info\|_end\|_ehead\|_text\|_edata\|z_.*\)$$/\#define ZO_\2 0x\1/p'
+ 
+ quiet_cmd_zoffset = ZOFFSET $@
+       cmd_zoffset = $(NM) $< | sed -n $(sed-zoffset) > $@
+diff --git a/arch/x86/boot/header.S b/arch/x86/boot/header.S
+index a1f98610..9e9641e2 100644
+--- a/arch/x86/boot/header.S
++++ b/arch/x86/boot/header.S
+@@ -75,9 +75,9 @@ SYSSEG		= 0x1000		/* historical load address >> 4 */
+ 	.byte	0x02				# MajorLinkerVersion
+ 	.byte	0x14				# MinorLinkerVersion
+ 
+-	.long	ZO__data			# SizeOfCode
++	.long	setup_size + ZO__end - 0x200	# SizeOfCode
+ 
+-	.long	ZO__end - ZO__data		# SizeOfInitializedData
++	.long	0				# SizeOfInitializedData
+ 	.long	0				# SizeOfUninitializedData
+ 
+ 	.long	setup_size + ZO_efi_pe_entry	# AddressOfEntryPoint
+@@ -178,9 +178,9 @@ SYSSEG		= 0x1000		/* historical load address >> 4 */
+ 	.byte	0
+ 	.byte	0
+ 	.byte	0
+-	.long	ZO__data
++	.long	ZO__end
+ 	.long	setup_size
+-	.long	ZO__data			# Size of initialized data
++	.long	ZO__edata			# Size of initialized data
+ 						# on disk
+ 	.long	setup_size
+ 	.long	0				# PointerToRelocations
+@@ -191,17 +191,6 @@ SYSSEG		= 0x1000		/* historical load address >> 4 */
+ 		IMAGE_SCN_MEM_READ		| \
+ 		IMAGE_SCN_MEM_EXECUTE		# Characteristics
+ 
+-	.ascii	".data\0\0\0"
+-	.long	ZO__end - ZO__data		# VirtualSize
+-	.long	setup_size + ZO__data		# VirtualAddress
+-	.long	ZO__edata - ZO__data		# SizeOfRawData
+-	.long	setup_size + ZO__data		# PointerToRawData
+-
+-	.long	0, 0, 0
+-	.long	IMAGE_SCN_CNT_INITIALIZED_DATA	| \
+-		IMAGE_SCN_MEM_READ		| \
+-		IMAGE_SCN_MEM_WRITE		# Characteristics
+-
+ 	.set	section_count, (. - section_table) / 40
+ #endif /* CONFIG_EFI_STUB */
+ 
+-- 
+2.39.2
+
