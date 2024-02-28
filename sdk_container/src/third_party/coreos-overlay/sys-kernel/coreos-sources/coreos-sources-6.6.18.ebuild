@@ -44,10 +44,4 @@ UNIPATCH_LIST="
 	${PATCH_DIR}/z0007-Revert-x86-boot-Construct-PE-COFF-.text-section-from.patch \
 	${PATCH_DIR}/z0008-Revert-x86-boot-Derive-file-size-from-_edata-symbol.patch \
 	${PATCH_DIR}/z0009-Revert-x86-boot-Define-setup-size-in-linker-script.patch \
-	${PATCH_DIR}/z0010-Revert-x86-boot-Set-EFI-handover-offset-directly-in-.patch \
-	${PATCH_DIR}/z0011-Revert-x86-boot-Grab-kernel_info-offset-from-zoffset.patch \
-	${PATCH_DIR}/z0012-Revert-x86-boot-Drop-redundant-code-setting-the-root.patch \
-	${PATCH_DIR}/z0013-Revert-x86-boot-Omit-compression-buffer-from-PE-COFF.patch \
-	${PATCH_DIR}/z0014-Revert-x86-boot-Remove-the-bugger-off-message.patch \
-	${PATCH_DIR}/z0015-Revert-x86-efi-Drop-alignment-flags-from-PE-section-.patch \
 "
