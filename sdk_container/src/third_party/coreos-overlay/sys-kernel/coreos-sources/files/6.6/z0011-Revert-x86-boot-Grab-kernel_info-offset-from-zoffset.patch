@@ -1,0 +1,60 @@
+From 84ad0bc5056d09006a1a97cfc4966b9986e80366 Mon Sep 17 00:00:00 2001
+Message-Id: <84ad0bc5056d09006a1a97cfc4966b9986e80366.1709043678.git.dpark@linux.microsoft.com>
+In-Reply-To: <c1cac21cfdb52c17b663a4daf266298f80cae6fb.1709043678.git.dpark@linux.microsoft.com>
+References: <c1cac21cfdb52c17b663a4daf266298f80cae6fb.1709043678.git.dpark@linux.microsoft.com>
+From: Dongsu Park <dpark@linux.microsoft.com>
+Date: Tue, 27 Feb 2024 15:17:32 +0100
+Subject: [PATCH 09/13] Revert "x86/boot: Grab kernel_info offset from zoffset
+ header directly"
+
+This reverts commit 8e102324e743ea5c120058e3ff1bc2834213015a.
+---
+ arch/x86/boot/header.S      | 2 +-
+ arch/x86/boot/tools/build.c | 4 ++++
+ 2 files changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/arch/x86/boot/header.S b/arch/x86/boot/header.S
+index 5575d0f0..6059f87b 100644
+--- a/arch/x86/boot/header.S
++++ b/arch/x86/boot/header.S
+@@ -526,7 +526,7 @@ pref_address:		.quad LOAD_PHYSICAL_ADDR	# preferred load addr
+ 
+ init_size:		.long INIT_SIZE		# kernel initialization size
+ handover_offset:	.long 0			# Filled in by build.c
+-kernel_info_offset:	.long ZO_kernel_info
++kernel_info_offset:	.long 0			# Filled in by build.c
+ 
+ # End of setup header #####################################################
+ 
+diff --git a/arch/x86/boot/tools/build.c b/arch/x86/boot/tools/build.c
+index 14ef13fe..10b0207a 100644
+--- a/arch/x86/boot/tools/build.c
++++ b/arch/x86/boot/tools/build.c
+@@ -59,6 +59,7 @@ static unsigned long efi32_stub_entry;
+ static unsigned long efi64_stub_entry;
+ static unsigned long efi_pe_entry;
+ static unsigned long efi32_pe_entry;
++static unsigned long kernel_info;
+ static unsigned long _end;
+ 
+ /*----------------------------------------------------------------------*/
+@@ -336,6 +337,7 @@ static void parse_zoffset(char *fname)
+ 		PARSE_ZOFS(p, efi64_stub_entry);
+ 		PARSE_ZOFS(p, efi_pe_entry);
+ 		PARSE_ZOFS(p, efi32_pe_entry);
++		PARSE_ZOFS(p, kernel_info);
+ 		PARSE_ZOFS(p, _end);
+ 
+ 		p = strchr(p, '\n');
+@@ -417,6 +419,8 @@ int main(int argc, char ** argv)
+ 	update_pecoff_text(setup_sectors * 512, i + (sys_size * 16));
+ 
+ 	efi_stub_entry_update();
++	/* Update kernel_info offset. */
++	put_unaligned_le32(kernel_info, &buf[0x268]);
+ 
+ 	crc = partial_crc32(buf, i, crc);
+ 	if (fwrite(buf, 1, i, dest) != i)
+-- 
+2.39.2
+
