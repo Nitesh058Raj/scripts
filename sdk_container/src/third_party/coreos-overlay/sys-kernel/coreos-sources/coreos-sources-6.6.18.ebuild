@@ -47,4 +47,5 @@ UNIPATCH_LIST="
 	${PATCH_DIR}/z0010-Revert-x86-boot-Set-EFI-handover-offset-directly-in-.patch \
 	${PATCH_DIR}/z0011-Revert-x86-boot-Grab-kernel_info-offset-from-zoffset.patch \
 	${PATCH_DIR}/z0012-Revert-x86-boot-Drop-redundant-code-setting-the-root.patch \
+	${PATCH_DIR}/z0013-Revert-x86-boot-Omit-compression-buffer-from-PE-COFF.patch \
 "
