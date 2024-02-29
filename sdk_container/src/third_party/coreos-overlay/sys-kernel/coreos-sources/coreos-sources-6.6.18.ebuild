@@ -37,16 +37,5 @@ IUSE=""
 UNIPATCH_LIST="
 	${PATCH_DIR}/z0001-kbuild-derive-relative-path-for-srctree-from-CURDIR.patch \
 	${PATCH_DIR}/z0002-revert-pahole-flags.patch \
-	${PATCH_DIR}/z0003-Revert-x86-efistub-Use-1-1-file-memory-mapping-for-P.patch \
-	${PATCH_DIR}/z0004-Revert-x86-boot-Increase-section-and-file-alignment-.patch \
-	${PATCH_DIR}/z0005-Revert-x86-boot-Split-off-PE-COFF-.data-section.patch \
-	${PATCH_DIR}/z0006-Revert-x86-boot-Drop-PE-COFF-.reloc-section.patch \
-	${PATCH_DIR}/z0007-Revert-x86-boot-Construct-PE-COFF-.text-section-from.patch \
-	${PATCH_DIR}/z0008-Revert-x86-boot-Derive-file-size-from-_edata-symbol.patch \
-	${PATCH_DIR}/z0009-Revert-x86-boot-Define-setup-size-in-linker-script.patch \
-	${PATCH_DIR}/z0010-Revert-x86-boot-Set-EFI-handover-offset-directly-in-.patch \
-	${PATCH_DIR}/z0011-Revert-x86-boot-Grab-kernel_info-offset-from-zoffset.patch \
-	${PATCH_DIR}/z0012-Revert-x86-boot-Drop-redundant-code-setting-the-root.patch \
-	${PATCH_DIR}/z0013-Revert-x86-boot-Omit-compression-buffer-from-PE-COFF.patch \
-	${PATCH_DIR}/z0014-Revert-x86-boot-Remove-the-bugger-off-message.patch \
+	${PATCH_DIR}/z0003-Revert-x86-boot-Remove-the-bugger-off-message.patch \
 "
