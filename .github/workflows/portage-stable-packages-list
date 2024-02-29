@@ -113,6 +113,7 @@ app-crypt/mhash
 app-crypt/mit-krb5
 app-crypt/pinentry
 app-crypt/rhash
+app-crypt/sbsigntools
 app-crypt/shash
 
 app-doc/eclass-manpages
