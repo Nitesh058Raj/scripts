@@ -124,7 +124,9 @@ src_configure() { :; }
 
 src_compile() {
 	export GOPATH="${S}/_dist"
-	export CGO_LDFLAGS_ALLOW="-Wl,-z,now"
+	export CGO_LDFLAGS_ALLOW="-Wl,-z,now,-L,-rpath-link"
+	export CGO_CFLAGS="${CGO_CFLAGS} -I${ESYSROOT}/usr/include"
+	export CGO_LDFLAGS="${CGO_LDFLAGS} -L${ESYSROOT}/usr/lib64 -Wl,-rpath-link,${ESYSROOT}/usr/lib64"
 
 	for k in incus-benchmark incus-user incus lxc-to-incus ; do
 		ego install -v -x "${S}/cmd/${k}"
