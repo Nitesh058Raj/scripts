@@ -1,0 +1,1 @@
+- Upgraded systemd from version 252 to version 255 ([flatcar/scripts#1679](https://github.com/flatcar/scripts/pull/1679)).
