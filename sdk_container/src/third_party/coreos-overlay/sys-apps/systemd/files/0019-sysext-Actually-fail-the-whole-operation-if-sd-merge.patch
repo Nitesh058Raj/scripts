@@ -1,0 +1,28 @@
+From 129a3fe38c124e22b857d7635276859744cea9aa Mon Sep 17 00:00:00 2001
+From: Krzesimir Nowak <knowak@microsoft.com>
+Date: Wed, 28 Feb 2024 15:41:46 +0100
+Subject: [PATCH 19/20] sysext: Actually fail the whole operation if sd-merge
+ worker failed
+
+This also fixes a wrong merge failure check.
+---
+ src/sysext/sysext.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/src/sysext/sysext.c b/src/sysext/sysext.c
+index 937fae9f25..c2572b30ea 100644
+--- a/src/sysext/sysext.c
++++ b/src/sysext/sysext.c
+@@ -1749,6 +1749,9 @@ static int merge(ImageClass image_class,
+         if (r == 123) /* exit code 123 means: didn't do anything */
+                 return 0;
+ 
++        if (r > 0)
++                return log_error_errno(SYNTHETIC_ERRNO(ENXIO), "Failed to merge hierarchies");
++
+         r = need_reload(image_class, hierarchies, no_reload);
+         if (r < 0)
+                 return r;
+-- 
+2.34.1
+
